@@ -4,5 +4,5 @@ const data = "9+3j9dfD3kazIT+6i/nIf6keR4GWKMOD4AvqfpjHoD4DuhBpz8P2816DJI4t0jwJJ9
 
 const rawData = Buffer.from(data, 'base64');
 
-console.log(rawData[0].toString(16));
+console.log(rawData.toString('hex'));
 

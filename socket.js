@@ -10,12 +10,10 @@ const connection = new Connection('https://api.mainnet-beta.solana.com');
 const subscribeRequest = {
     "jsonrpc": "2.0",
     "id": 1,
-    "method": "programSubscribe",
+    "method": "logsSubscribe",
     "params": [
-      "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C",
-      {
-        "encoding": "jsonParsed"
-      }
+        { mentions: ["CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"] },
+        { commitment: "finalized" }
     ]
   };
 
@@ -30,10 +28,14 @@ ws.on('open', () => {
 ws.on('message', (data) => {
     const dataString = data.toString('utf8');
     const parsedData = JSON.parse(dataString);
+    console.log(dataString);
 
     if (parsedData.params?.result?.value?.account?.data) {
         const buff = Buffer.from(parsedData.params.result.value.account.data[0], 'base64');
-        console.log(`First byte: ${buff.slice(0,8).toString('hex')}`);
+        console.log(dataString);
+        if (buff.readBigUInt64LE(0) === 17121445590508351407n) {
+            console.log('match found');
+        }
         // const decodedInstructions = program.decodeInstruction(buff); 
         // console.log(decodedData.toString('hex'));
         // console.log(decodedInstructions);
