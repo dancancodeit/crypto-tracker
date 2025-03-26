@@ -22,6 +22,7 @@ const subscribeRequest = {
     ]
   };
 
+const program = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 const provider = new anchor.AnchorProvider(connection, {}, { commitment: 'confirmed' });
 const program = new anchor.Program(idl, PROGRAM_ID, provider);
 
