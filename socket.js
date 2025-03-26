@@ -1,13 +1,10 @@
-const WebSocket = require('ws');
-const anchor = require('@coral-xyz/anchor');
-const { Connection, PublicKey } = require('@solana/web3.js');
+import WebSocket from 'ws';
+import * as anchor from '@coral-xyz/anchor';
+import { Connection, PublicKey } from '@solana/web3.js';
 
 const websocketURL = "wss://api.mainnet-beta.solana.com";
-
 const ws = new WebSocket(websocketURL);
-const idl = require('./idl.json');
 const PROGRAM_ID = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
-
 const connection = new Connection('https://api.mainnet-beta.solana.com');
 
 const subscribeRequest = {
@@ -24,10 +21,10 @@ const subscribeRequest = {
 
 const program = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 const provider = new anchor.AnchorProvider(connection, {}, { commitment: 'confirmed' });
-const program = new anchor.Program(idl, PROGRAM_ID, provider);
 
 ws.on('open', () => {
     ws.send(JSON.stringify(subscribeRequest));
+    console.log('subcription request sent');
 });
 
 ws.on('message', (data) => {
@@ -36,14 +33,11 @@ ws.on('message', (data) => {
 
     if (parsedData.params?.result?.value?.account?.data) {
         const buff = Buffer.from(parsedData.params.result.value.account.data[0], 'base64');
-        //console.log(`First byte: ${decodedData[0].toString(16)}`);
-        const decodedInstructions = program.decodeInstruction(buff); 
+        console.log(`First byte: ${buff.slice(0,8).toString('hex')}`);
+        // const decodedInstructions = program.decodeInstruction(buff); 
         // console.log(decodedData.toString('hex'));
-        console.log(decodedInstructions);
+        // console.log(decodedInstructions);
     }
-
-    console.log(JSON.stringify(parsedData));
-
 });
 
 
