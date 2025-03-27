@@ -25,23 +25,26 @@ ws.on('open', () => {
     console.log('subcription request sent');
 });
 
-ws.on('message', (data) => {
+ws.on('message', async (data) => {
     const dataString = data.toString('utf8');
     const parsedData = JSON.parse(dataString);
-    console.log(dataString);
+    //console.log(dataString);
+    // TODO: better check?
+    if (parsedData?.params?.result?.value?.signature) {
+        //TODO: search through program logs and check for "Initialize"
+        const signature = parsedData.params.result.value.signature;
+        const tx = await connection.getTransaction(signature, {
+            maxSupportedVersion: 0
+        });
 
-    if (parsedData.params?.result?.value?.account?.data) {
-        const buff = Buffer.from(parsedData.params.result.value.account.data[0], 'base64');
-        console.log(dataString);
-        if (buff.readBigUInt64LE(0) === 17121445590508351407n) {
-            console.log('match found');
-        }
-        // const decodedInstructions = program.decodeInstruction(buff); 
-        // console.log(decodedData.toString('hex'));
-        // console.log(decodedInstructions);
+        //TODO: get token A and token B
+        
+
+        console.log(JSON.stringify(tx));
     }
-});
 
+});
+    
 
 
 
