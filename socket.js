@@ -31,26 +31,29 @@ ws.on('message', async (data) => {
     //console.log(dataString);
     // TODO: better check?
     if (parsedData?.params?.result?.value?.signature) {
-        //TODO: search through program logs and check for "Initialize"
-        const signature = parsedData.params.result.value.signature;
-        const tx = await connection.getTransaction(signature, {
-            maxSupportedVersion: 0
-        });
+        //TODO: search through program logs and check for "Initialize" (params->result->value.logs[])
+        //check for "Program log: Instruction: Initialize"
 
-        //TODO: get token A and token B
-        
+        let initTransaction = false;
+        for (const log of parsedData.params.result.value.logs) {
+            if (log.toLowerCase() === "Program log: Instruction: Initialize".toLowerCase()) {
+                initTransaction = true;
+                break;
+            }
+        }
+        if (initTransaction) {
+            const signature = parsedData.params.result.value.signature;
+            const tx = await connection.getTransaction(signature, {
+                maxSupportedTransactionVersion: 0
+            });
+            console.log(JSON.stringify(tx));
+            //TODO: get reserve A and reserve B, identify SOL then get liquidty value
 
-        console.log(JSON.stringify(tx));
+        }
     }
-
 });
-    
-
-
 
 // const { Buffer } = require('buffer');
-// const bs58 = require('bs58');
-
 
 // // Convert hex string to buffer
 // const decodedData = Buffer.from(encodedData, 'hex');
@@ -67,8 +70,3 @@ ws.on('message', async (data) => {
 //   fees: decodedData.readUInt32LE(160),  
 // };
 
-// console.log(pool);
-
-
-// const decodedData = Buffer.from("9+3j9dfD3kazIT+6i/nIf6keR4GWKMOD4AvqfpjHoD4DuhBpz8P285ixitaDqX3ft6rM7Wwy/cDtv1J3MtSQjtzXBCrVzrKwxcSTtMXHzxP/qh5brK8vb66g4iCW646pSOZf8wH0wpzS99yCu4l2Ij2qHNjeBAIZClm5swlGdAsrgM1L+bmyPEqUCjM3kL12PE99FH672Zgl8PzyYnJ8l4gEhDNw2sVXBpuIV/6rgYT7aH9jRhjANdrEOdwa6ztVmKDwAAAAAAHetKECmiPJaXaXxgeJrjgl1rHvdGylJMVQgjhHSnQW3gbd9uHXZaGT2cvhRs7reawctIXtX1s3kTqM9YV+/wCpBt324ddloZPZy+FGzut5rBy0he1fWzeROoz1hX7/AKkXQ5YBagJTnL10KsvemHUInvcC46IZ03gnM51MzX8v2P0ACQkJl9JPc4edAAC5SBoCAAAAAOMpp/UW1AEAN1U9AQAAAADCsAceqREBACqNq2cAAAAA+QIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==", "base64");
-// console.log(decodedData.toString('hex'));
