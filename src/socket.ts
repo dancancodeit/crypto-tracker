@@ -1,11 +1,12 @@
 import WebSocket from 'ws';
-import * as anchor from '@coral-xyz/anchor';
+import txObj from '../run.json';
 import { Connection, PublicKey } from '@solana/web3.js';
 
 const websocketURL = "wss://api.mainnet-beta.solana.com";
 const ws = new WebSocket(websocketURL);
 const PROGRAM_ID = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 const connection = new Connection('https://api.mainnet-beta.solana.com');
+
 
 const subscribeRequest = {
     "jsonrpc": "2.0",
@@ -15,10 +16,10 @@ const subscribeRequest = {
         { mentions: ["CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"] },
         { commitment: "finalized" }
     ]
-  };
+};
 
-const program = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
-const provider = new anchor.AnchorProvider(connection, {}, { commitment: 'confirmed' });
+//const program = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
+//const provider = new anchor.AnchorProvider(connection, wallet, { commitment: 'confirmed' });
 
 ws.on('open', () => {
     ws.send(JSON.stringify(subscribeRequest));
@@ -48,7 +49,7 @@ ws.on('message', async (data) => {
             });
             console.log(JSON.stringify(tx));
             //TODO: get reserve A and reserve B, identify SOL then get liquidty value
-
+            
         }
     }
 });
