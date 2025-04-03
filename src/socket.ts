@@ -1,19 +1,22 @@
 import WebSocket from 'ws';
-import txObj from '../run.json';
 import { Connection, PublicKey } from '@solana/web3.js';
-
-const websocketURL = "wss://api.mainnet-beta.solana.com";
+import { base58_to_binary } from 'base58-js';
+import jsonInput from '../lognotification.json' with { type: 'json' }
+// const websocketURL = "wss://api.mainnet-beta.solana.com";
+const websocketURL = "wss://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5";
 const ws = new WebSocket(websocketURL);
 const PROGRAM_ID = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 const connection = new Connection('https://api.mainnet-beta.solana.com');
-
+const lamportPerSol = 1_000_000_000n;
+const scale = 1_000_000_000_000_000n;
+const usdQuote = 12497
 
 const subscribeRequest = {
     "jsonrpc": "2.0",
     "id": 1,
     "method": "logsSubscribe",
     "params": [
-        { mentions: ["CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C"] },
+        { mentions: [PROGRAM_ID] },
         { commitment: "finalized" }
     ]
 };
@@ -21,20 +24,30 @@ const subscribeRequest = {
 //const program = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 //const provider = new anchor.AnchorProvider(connection, wallet, { commitment: 'confirmed' });
 
-ws.on('open', () => {
-    ws.send(JSON.stringify(subscribeRequest));
-    console.log('subcription request sent');
-});
+const connectSocket = () => {
+    ws.on('open', () => {
+        ws.send(JSON.stringify(subscribeRequest));
+        console.log('subcription request sent');
+    });
 
-ws.on('message', async (data) => {
-    const dataString = data.toString('utf8');
-    const parsedData = JSON.parse(dataString);
-    //console.log(dataString);
-    // TODO: better check?
-    if (parsedData?.params?.result?.value?.signature) {
-        //TODO: search through program logs and check for "Initialize" (params->result->value.logs[])
-        //check for "Program log: Instruction: Initialize"
+    ws.on('message', async (data) => {
+        const dataString = data.toString('utf8');
+        const parsedData = JSON.parse(dataString);
+        processTransaction(parsedData);
+    });
 
+    ws.on('close', async () => {
+        console.log('retrying connection');
+        retryConnection();
+    });
+}
+
+const retryConnection = () => {
+    setTimeout(connectSocket, 2000);
+}
+
+const processTransaction = async (parsedData: any) => {
+    if (parsedData?.params?.result?.value?.signature && !parsedData?.params?.result?.value?.err) {
         let initTransaction = false;
         for (const log of parsedData.params.result.value.logs) {
             if (log.toLowerCase() === "Program log: Instruction: Initialize".toLowerCase()) {
@@ -47,27 +60,57 @@ ws.on('message', async (data) => {
             const tx = await connection.getTransaction(signature, {
                 maxSupportedTransactionVersion: 0
             });
-            console.log(JSON.stringify(tx));
-            //TODO: get reserve A and reserve B, identify SOL then get liquidty value
-            
+            if (tx) {
+                const initializTx = tx.transaction.message.compiledInstructions.find(el => {
+                    const identifer = [175, 175, 109, 31, 13, 152, 155, 237];
+                    return el.data.slice(0, 8).every((byt, i) => byt === identifer[i]);
+
+                });
+                if (initializTx) {
+                    const buff = Buffer.from(initializTx.data);
+                    if (buff.byteLength === 32) {
+                        const initAmount0 = buff.readBigUInt64LE(8);
+                        const initAmount1 = buff.readBigUInt64LE(16);
+                        const tokenAddress0 = tx.transaction.message.staticAccountKeys[initializTx.accountKeyIndexes[4]];
+                        const tokenAddress1 = tx.transaction.message.staticAccountKeys[initializTx.accountKeyIndexes[5]];
+
+                        const tokens = [tokenAddress0, tokenAddress1];
+                        const amounts = [initAmount0, initAmount1];
+
+                        const baseTokenIdx = [tokenAddress0, tokenAddress1].findIndex((val) => {
+                            return val.toString().slice(0, 2) !== 'So'
+                        });
+                        const quoteTokenIdx = [tokenAddress0, tokenAddress1].findIndex((val) => {
+                            return val.toString().slice(0, 2) === 'So'
+                        });
+                        const quoteTokenDetails = await connection.getTokenSupply(tokens[baseTokenIdx]);
+                        if (quoteTokenDetails) {
+                            const decimals = quoteTokenDetails.value.decimals;
+                            const price = computePrices(BigInt(amounts[baseTokenIdx]), BigInt(amounts[quoteTokenIdx]), BigInt(scale), BigInt(decimals));
+                            printPrices(price.toString(), tokens[baseTokenIdx].toString(), amounts[baseTokenIdx].toString(), Number(amounts[quoteTokenIdx]) * (usdQuote * 10 ** -2) * 2 * Number(lamportPerSol));
+                        }
+                    }
+                }
+            }
         }
     }
-});
+}
 
-// const { Buffer } = require('buffer');
+const computePrices = (baseTokenAmount: bigint, quoteTokenAmount: bigint, scale: bigint, decimals: bigint) => {
+    const numerator = quoteTokenAmount * scale / (10n ** 9n);
+    const denominator = baseTokenAmount / 10n ** decimals;
+    const result = numerator / denominator;
+    return Number(result) / Number(scale);
+}
 
-// // Convert hex string to buffer
-// const decodedData = Buffer.from(encodedData, 'hex');
+const printPrices = (baseTokenPrice: string, baseTokenAddress: string, baseTokenSupply: string, liquidityVal: number) => {
+    console.log(`Base Token Price: ${baseTokenPrice} SOL`);
+    console.log(`Base Token Supply: ${baseTokenSupply}`);
+    console.log(`Initial Liquidity Pool Value: ${liquidityVal} USD`);
+    console.log(`Token: ${baseTokenAddress}`);
+    console.log('-------------');
+}
 
-// // Parse liquidity pool data based on known Raydium LP struct
-// const pool = {
-//   status: decodedData.readUInt32LE(0),  
-//   nonce: decodedData.readUInt32LE(4),  
-//   tokenMintA: bs58.default.encode(decodedData.slice(8, 40)),  
-//   tokenMintB: bs58.default.encode(decodedData.slice(40, 72)),  
-//   reserveA: decodedData.readBigUInt64LE(72),  
-//   reserveB: decodedData.readBigUInt64LE(80),  
-//   lpMint: bs58.default.encode(decodedData.slice(88, 120)),  
-//   fees: decodedData.readUInt32LE(160),  
-// };
+console.log('app started');
+// processTransaction(jsonInput);
 
