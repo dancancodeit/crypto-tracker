@@ -4,10 +4,9 @@ import { base58_to_binary } from 'base58-js';
 import jsonInput from '../lognotification.json' with { type: 'json' }
 // const websocketURL = "wss://api.mainnet-beta.solana.com";
 const websocketURL = "wss://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5";
-const ws = new WebSocket(websocketURL);
 const PROGRAM_ID = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 const connection = new Connection('https://api.mainnet-beta.solana.com');
-const lamportPerSol = 1_000_000_000n;
+const lamportPerSol = 10 ** -9;
 const scale = 1_000_000_000_000_000n;
 const usdQuote = 12497
 
@@ -25,6 +24,8 @@ const subscribeRequest = {
 //const provider = new anchor.AnchorProvider(connection, wallet, { commitment: 'confirmed' });
 
 const connectSocket = () => {
+    const ws = new WebSocket(websocketURL);
+
     ws.on('open', () => {
         ws.send(JSON.stringify(subscribeRequest));
         console.log('subcription request sent');
@@ -111,6 +112,7 @@ const printPrices = (baseTokenPrice: string, baseTokenAddress: string, baseToken
     console.log('-------------');
 }
 
+connectSocket();
 console.log('app started');
 // processTransaction(jsonInput);
 
