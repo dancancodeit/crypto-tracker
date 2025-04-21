@@ -10,6 +10,7 @@ const lamportPerSol = 10 ** -9;
 const scale = 1_000_000_000_000_000n;
 const usdQuote = 12497
 
+
 const subscribeRequest = {
     "jsonrpc": "2.0",
     "id": 1,
@@ -28,7 +29,6 @@ const connectSocket = () => {
 
     ws.on('open', () => {
         ws.send(JSON.stringify(subscribeRequest));
-        console.log('subcription request sent');
     });
 
     ws.on('message', async (data) => {
