@@ -28,6 +28,7 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     const parsedData = JSON.parse(dataString);
     let targetHandler: Market | undefined;
 
+    // register subscription ID
     if (parsedData.id) {
         targetHandler = handlers.find((handler) => handler.id === parsedData.id);
         if (!targetHandler) {
@@ -43,6 +44,7 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     if (!targetHandler) {
         return;
     }
+
     // loop through logs, return if no log matches
     let foundLogPhrase = '';
     let targetInstructionHandler;
@@ -55,7 +57,6 @@ const processTransaction = async (data: any, handlers: Market[]) => {
             }
         }
     }
-
     if (!foundLogPhrase || !targetInstructionHandler) {
         return;
     }
@@ -68,9 +69,12 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     if (!tx) { return }
 
     // get transaction account and data (use the identifier to identify transaction)
+    const instruction = tx.transaction.message.compiledInstructions.find((inst) => targetInstructionHandler.isTransaction(inst));
+    const accountKeys = tx.transaction.message.staticAccountKeys;
+    if (!instruction) { return }
 
     // transform
-    const payload = targetInstructionHandler.transform(null)
+    const payload = targetInstructionHandler.transform(instruction, accountKeys);
 
     // pass to handler
     targetInstructionHandler.handle(payload);

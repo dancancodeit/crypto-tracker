@@ -5,8 +5,9 @@ export interface InitPayload { }
 class InitInstruction implements InstructionInterface<InitPayload> {
     instructionIdentifier: string = '';
     instructionName: string = 'Initialize';
-    transform = (arg0: any) => ({});
+    transform = (arg0: any, arg1: any) => ({});
     handle = (arg0: InitPayload) => { };
+    isTransaction = (data: number[]) => true;
 }
 
 export class RaydiumAMM implements Market {
