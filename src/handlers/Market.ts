@@ -10,4 +10,5 @@ export interface InstructionInterface<T> {
     instructionName: string;
     transform: (arg0: any) => T;
     handle: (arg0: T) => void;
+    isTransaction: (data: number[]) => boolean;
 }
