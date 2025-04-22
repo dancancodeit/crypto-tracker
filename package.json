@@ -20,7 +20,7 @@
     "vite": "^6.3.2"
   },
   "scripts": {
-    "build": "tsc --no-emit && vite build",
+    "build": "tsc --noEmit && vite build",
     "start": "node dist/index.js"
   }
 }
