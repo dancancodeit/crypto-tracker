@@ -1,7 +1,5 @@
 import WebSocket from 'ws';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { base58_to_binary } from 'base58-js';
-import jsonInput from '../lognotification.json' with { type: 'json' }
 import { Market } from './handlers/Market';
 import { RaydiumAMM } from './handlers/raydium_amm'
 // const websocketURL = "wss://api.mainnet-beta.solana.com";
@@ -43,7 +41,6 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     }
 
     // loop through logs, return if no log matches
-    let foundLogPhrase = '';
     let targetInstructionHandler;
     for (const log of parsedData.params.result.value.logs) {
         const instructionHandlers = targetHandler.getInstructions();
@@ -53,7 +50,7 @@ const processTransaction = async (data: any, handlers: Market[]) => {
             }
         }
     }
-    if (!foundLogPhrase || !targetInstructionHandler) {
+    if (!targetInstructionHandler) {
         return;
     }
     console.log('log found');
@@ -67,12 +64,13 @@ const processTransaction = async (data: any, handlers: Market[]) => {
 
     // get transaction account and data (use the identifier to identify transaction)
     const instruction = tx.transaction.message.compiledInstructions.find((inst) => targetInstructionHandler.isTransaction(inst.data));
+    const innerInstruction = tx.meta?.innerInstructions?.find((inst) => targetInstructionHandler.isTransaction(inst));
     const accountKeys = tx.transaction.message.staticAccountKeys;
-    if (!instruction) { return }
+    if (!instruction && !innerInstruction) { return }
 
     console.log('transforming');
     // transform
-    const payload = targetInstructionHandler.transform(instruction, accountKeys);
+    const payload = targetInstructionHandler.transform(instruction || innerInstruction, accountKeys);
 
     // pass to handler
     targetInstructionHandler.handle(payload);
