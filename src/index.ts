@@ -42,8 +42,8 @@ const processTransaction = async (data: any, handlers: Market[]) => {
 
     // loop through logs, return if no log matches
     let targetInstructionHandler;
+    const instructionHandlers = targetHandler.getInstructions();
     for (const log of parsedData.params.result.value.logs) {
-        const instructionHandlers = targetHandler.getInstructions();
         for (const instructionHandler of instructionHandlers) {
             if (instructionHandler.isLogMatch(log)) {
                 targetInstructionHandler = instructionHandler;
