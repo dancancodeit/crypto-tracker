@@ -1,5 +1,5 @@
 import WebSocket from 'ws';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { CompiledInstruction, Connection, PublicKey } from '@solana/web3.js';
 import { Market } from './handlers/Market';
 import { RaydiumAMM } from './handlers/raydium_amm'
 // const websocketURL = "wss://api.mainnet-beta.solana.com";
@@ -63,14 +63,23 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     console.log('tx found');
 
     // get transaction account and data (use the identifier to identify transaction)
+    console.log(tx.transaction.message.compiledInstructions);
     const instruction = tx.transaction.message.compiledInstructions.find((inst) => targetInstructionHandler.isTransaction(inst.data));
-    const innerInstruction = tx.meta?.innerInstructions?.find((inst) => targetInstructionHandler.isTransaction(inst));
+    let locatedInnerInstruction: CompiledInstruction | undefined;
+    for (const innerInstruction of tx.meta?.innerInstructions || []) {
+        for (const instruction of innerInstruction.instructions) {
+            // if (targetInstructionHandler.isTransaction(instruction.data)) {
+            // locatedInnerInstruction = instruction;
+            // }
+        }
+    }
     const accountKeys = tx.transaction.message.staticAccountKeys;
-    if (!instruction && !innerInstruction) { return }
+    // if (!instruction) { return }
+    if (!instruction && !locatedInnerInstruction) { return }
 
     console.log('transforming');
     // transform
-    const payload = targetInstructionHandler.transform(instruction || innerInstruction, accountKeys);
+    const payload = await targetInstructionHandler.transform(instruction, accountKeys);
 
     // pass to handler
     targetInstructionHandler.handle(payload);

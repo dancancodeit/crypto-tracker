@@ -3,6 +3,14 @@ import { Market, InstructionInterface } from './Market';
 import { scale, lamportPerSol, usdQuote } from '../price_utils';
 
 export interface InitPayload { }
+export interface SwapPayload { }
+
+class SwapInstruction implements InstructionInterface<SwapPayload> {
+    async transform(arg0: any, arg1: any) { };
+    handle(arg0: SwapPayload) { };
+    isTransaction(data: number[]) { return false };
+    isLogMatch(log: any) { return false };
+}
 
 class InitInstruction implements InstructionInterface<InitPayload> {
     instruction = [175, 175, 109, 31, 13, 152, 155, 237];
