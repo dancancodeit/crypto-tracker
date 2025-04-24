@@ -7,14 +7,17 @@ export interface SwapPayload { }
 
 class SwapInstruction implements InstructionInterface<SwapPayload> {
     async transform(arg0: any, arg1: any) { };
+    transformInner = async (transaction: any, accountKeys: any) => ({})
     handle(arg0: SwapPayload) { };
-    isTransaction(data: number[]) { return false };
+    isTransaction(data: Buffer) { return false };
+    isInnerTransaction = (data: string) => false;
     isLogMatch(log: any) { return false };
 }
 
 class InitInstruction implements InstructionInterface<InitPayload> {
     instruction = [175, 175, 109, 31, 13, 152, 155, 237];
     connection: Connection;
+    transformInner = async (innerInstruction: any, accountKeys: any) => ({});
     transform = async (arg0: any, arg1: any) => {
         const buff = Buffer.from(arg0.data);
         if (buff.byteLength !== 32) {
@@ -58,9 +61,10 @@ class InitInstruction implements InstructionInterface<InitPayload> {
         console.log('handling');
         console.log(arg0);
     };
-    isTransaction = (data: number[]) => {
+    isTransaction = (data: Buffer) => {
         return data.slice(0, 8).every((byte, i) => byte === this.instruction[i]);
     }
+    isInnerTransaction = (data: string) => false;
     isLogMatch = (log: any) => {
         return log.toLowerCase() === "Program log: Instruction: Initialize".toLowerCase();
     }

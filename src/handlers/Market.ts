@@ -6,8 +6,10 @@ export interface Market {
 }
 
 export interface InstructionInterface<T> {
-    transform: (arg0: any, arg1: any) => T;
+    transform: (instruction: any, accountKeys: any) => T;
+    transformInner: (innerInstruction: any, accountKeys: any) => T;
     handle: (arg0: T) => void;
-    isTransaction: (data: number[]) => boolean;
+    isTransaction: (data: Buffer) => boolean;
+    isInnerTransaction: (data: string) => boolean;
     isLogMatch: (log: any) => boolean;
 }

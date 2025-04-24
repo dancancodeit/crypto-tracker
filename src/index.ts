@@ -68,7 +68,7 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     let locatedInnerInstruction: CompiledInstruction | undefined;
     for (const innerInstruction of tx.meta?.innerInstructions || []) {
         for (const instruction of innerInstruction.instructions) {
-            // if (targetInstructionHandler.isTransaction(instruction.data)) {
+            // if (targetInstructionHandler.isInnerTransaction(instruction.data)) {
             // locatedInnerInstruction = instruction;
             // }
         }
