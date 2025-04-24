@@ -1,6 +1,7 @@
 import { Connection } from '@solana/web3.js';
 import { Market, InstructionInterface } from './Market';
 import { scale, lamportPerSol, usdQuote } from '../price_utils';
+import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
 export interface InitPayload { }
 export interface SwapPayload { }
@@ -10,8 +11,16 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
     transformInner = async (transaction: any, accountKeys: any) => ({})
     handle(arg0: SwapPayload) { };
     isTransaction(data: Buffer) { return false };
-    isInnerTransaction = (data: string) => false;
-    isLogMatch(log: any) { return false };
+    isInnerTransaction = (data: string) => {
+        const hexIn = Buffer.from('37d96256a34ab4ad', 'hex');
+        const hexOut = Buffer.from('8fbe5adac41e33de', 'hex');
+        const instructionData = bs58.decode(data);
+        return hexIn.equals(instructionData.slice(0, 8)) || hexOut.equals(instructionData.slice(0, 8));
+    }
+    isLogMatch(log: string) {
+        return !!log.match(/Program log: Instruction: SwapBase(?:Output|Input)/);
+
+    };
 }
 
 class InitInstruction implements InstructionInterface<InitPayload> {
@@ -87,7 +96,8 @@ export class RaydiumAMM implements Market {
     id: number;
 
     getInstructions = () => ([
-        new InitInstruction(this.connection)
+        // new InitInstruction(this.connection),
+        new SwapInstruction()
     ]);
     constructor(id: number, connection: Connection) {
         this.id = id;

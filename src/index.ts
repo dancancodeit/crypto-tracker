@@ -1,11 +1,10 @@
 import WebSocket from 'ws';
-import { CompiledInstruction, Connection, PublicKey } from '@solana/web3.js';
+import { CompiledInstruction, Connection } from '@solana/web3.js';
 import { Market } from './handlers/Market';
 import { RaydiumAMM } from './handlers/raydium_amm'
 // const websocketURL = "wss://api.mainnet-beta.solana.com";
 const websocketURL = "wss://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5";
-const PROGRAM_ID = new PublicKey('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
-const connection = new Connection('https://api.mainnet-beta.solana.com');
+const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5');
 
 const subscribeRequest = (id: number, programId: string) => (JSON.stringify({
     "jsonrpc": "2.0",
@@ -46,6 +45,7 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     for (const log of parsedData.params.result.value.logs) {
         for (const instructionHandler of instructionHandlers) {
             if (instructionHandler.isLogMatch(log)) {
+                console.log(`identified ${log}`);
                 targetInstructionHandler = instructionHandler;
             }
         }
@@ -63,23 +63,27 @@ const processTransaction = async (data: any, handlers: Market[]) => {
     console.log('tx found');
 
     // get transaction account and data (use the identifier to identify transaction)
-    console.log(tx.transaction.message.compiledInstructions);
     const instruction = tx.transaction.message.compiledInstructions.find((inst) => targetInstructionHandler.isTransaction(inst.data));
     let locatedInnerInstruction: CompiledInstruction | undefined;
     for (const innerInstruction of tx.meta?.innerInstructions || []) {
         for (const instruction of innerInstruction.instructions) {
-            // if (targetInstructionHandler.isInnerTransaction(instruction.data)) {
-            // locatedInnerInstruction = instruction;
-            // }
+            if (targetInstructionHandler.isInnerTransaction(instruction.data)) {
+                locatedInnerInstruction = instruction;
+            }
         }
     }
     const accountKeys = tx.transaction.message.staticAccountKeys;
-    // if (!instruction) { return }
     if (!instruction && !locatedInnerInstruction) { return }
 
     console.log('transforming');
     // transform
-    const payload = await targetInstructionHandler.transform(instruction, accountKeys);
+    let payload;
+    if (instruction) {
+        payload = await targetInstructionHandler.transform(instruction, accountKeys);
+    }
+    else if (locatedInnerInstruction) {
+        payload = await targetInstructionHandler.transformInner(locatedInnerInstruction, accountKeys);
+    }
 
     // pass to handler
     targetInstructionHandler.handle(payload);

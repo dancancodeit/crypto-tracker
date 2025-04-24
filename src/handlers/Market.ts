@@ -11,5 +11,5 @@ export interface InstructionInterface<T> {
     handle: (arg0: T) => void;
     isTransaction: (data: Buffer) => boolean;
     isInnerTransaction: (data: string) => boolean;
-    isLogMatch: (log: any) => boolean;
+    isLogMatch: (log: string) => boolean;
 }
