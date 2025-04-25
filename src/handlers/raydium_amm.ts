@@ -1,4 +1,4 @@
-import { Connection } from '@solana/web3.js';
+import { CompiledInstruction, Connection, MessageCompiledInstruction, PublicKey } from '@solana/web3.js';
 import { Market, InstructionInterface } from './Market';
 import { scale, lamportPerSol, usdQuote } from '../price_utils';
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
@@ -7,27 +7,28 @@ export interface InitPayload { }
 export interface SwapPayload { }
 
 class SwapInstruction implements InstructionInterface<SwapPayload> {
-    async transform(arg0: any, arg1: any) { };
-    transformInner = async (transaction: any, accountKeys: any) => ({})
+    async transform(arg0: MessageCompiledInstruction, arg1: PublicKey[]) { };
+    transformInner = async (transaction: CompiledInstruction, accountKeys: PublicKey[]) => {
+
+    }
     handle(arg0: SwapPayload) { };
     isTransaction(data: Buffer) { return false };
     isInnerTransaction = (data: string) => {
         const hexIn = Buffer.from('37d96256a34ab4ad', 'hex');
         const hexOut = Buffer.from('8fbe5adac41e33de', 'hex');
-        const instructionData = bs58.decode(data);
-        return hexIn.equals(instructionData.slice(0, 8)) || hexOut.equals(instructionData.slice(0, 8));
+        const instructionData = bs58.decode(data).slice(0, 8);
+        return hexIn.equals(instructionData || hexOut.equals(instructionData));
     }
     isLogMatch(log: string) {
         return !!log.match(/Program log: Instruction: SwapBase(?:Output|Input)/);
-
     };
 }
 
 class InitInstruction implements InstructionInterface<InitPayload> {
     instruction = [175, 175, 109, 31, 13, 152, 155, 237];
     connection: Connection;
-    transformInner = async (innerInstruction: any, accountKeys: any) => ({});
-    transform = async (arg0: any, arg1: any) => {
+    transformInner = async (innerInstruction: CompiledInstruction, accountKeys: PublicKey[]) => ({});
+    transform = async (arg0: MessageCompiledInstruction, arg1: PublicKey[]) => {
         const buff = Buffer.from(arg0.data);
         if (buff.byteLength !== 32) {
             return;
@@ -74,7 +75,7 @@ class InitInstruction implements InstructionInterface<InitPayload> {
         return data.slice(0, 8).every((byte, i) => byte === this.instruction[i]);
     }
     isInnerTransaction = (data: string) => false;
-    isLogMatch = (log: any) => {
+    isLogMatch = (log: string) => {
         return log.toLowerCase() === "Program log: Instruction: Initialize".toLowerCase();
     }
     computePrices = (baseTokenAmount: bigint, quoteTokenAmount: bigint, scale: bigint, decimals: bigint) => {

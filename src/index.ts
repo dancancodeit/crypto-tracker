@@ -16,7 +16,7 @@ const subscribeRequest = (id: number, programId: string) => (JSON.stringify({
     ]
 }));
 
-const processTransaction = async (data: any, handlers: Market[]) => {
+const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
     const dataString = data.toString('utf8');
     const parsedData = JSON.parse(dataString);
     let targetHandler: Market | undefined;

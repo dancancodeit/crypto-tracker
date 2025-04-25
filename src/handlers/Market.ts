@@ -1,3 +1,5 @@
+import { CompiledInstruction, MessageCompiledInstruction, PublicKey } from "@solana/web3.js";
+
 export interface Market {
     programId: string;
     subscriptionId: number
@@ -6,8 +8,8 @@ export interface Market {
 }
 
 export interface InstructionInterface<T> {
-    transform: (instruction: any, accountKeys: any) => T;
-    transformInner: (innerInstruction: any, accountKeys: any) => T;
+    transform: (instruction: MessageCompiledInstruction, accountKeys: PublicKey[]) => T;
+    transformInner: (innerInstruction: CompiledInstruction, accountKeys: PublicKey[]) => T;
     handle: (arg0: T) => void;
     isTransaction: (data: Buffer) => boolean;
     isInnerTransaction: (data: string) => boolean;
