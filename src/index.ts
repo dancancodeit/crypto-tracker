@@ -23,12 +23,13 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
 
     // register subscription ID
     if (parsedData.id) {
-        console.log('registering subscription');
+        console.log(`registering subscription ${parsedData.id}`);
         targetHandler = handlers.find((handler) => handler.id === parsedData.id);
         if (!targetHandler) {
             return;
         }
         targetHandler.subscriptionId = parsedData.subscription;
+        console.log(`registered to ${targetHandler}`);
         return;
     }
 
@@ -53,14 +54,14 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
     if (!targetInstructionHandler) {
         return;
     }
-    console.log('log found');
+    console.log(`handler found ${targetInstructionHandler}`);
     // if log found, fetch rest of the transaction
     const signature = parsedData.params.result.value.signature;
     const tx = await connection.getTransaction(signature, {
         maxSupportedTransactionVersion: 0
     });
     if (!tx) { return }
-    console.log('tx found');
+    console.log(`tx found ${signature}`);
 
     // get transaction account and data (use the identifier to identify transaction)
     const instruction = tx.transaction.message.compiledInstructions.find((inst) => targetInstructionHandler.isTransaction(inst.data));
@@ -81,8 +82,8 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
     if (instruction) {
         payload = await targetInstructionHandler.transform(instruction, accountKeys);
     }
-    else if (locatedInnerInstruction) {
-        payload = await targetInstructionHandler.transformInner(locatedInnerInstruction, accountKeys);
+    else if (locatedInnerInstruction && tx.meta && tx.meta.loadedAddresses) {
+        payload = await targetInstructionHandler.transformInner(locatedInnerInstruction, [...accountKeys, ...tx.meta.loadedAddresses.writable, ...tx.meta.loadedAddresses.readonly], tx.meta);
     }
 
     // pass to handler

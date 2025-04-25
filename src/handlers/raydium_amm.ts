@@ -1,4 +1,4 @@
-import { CompiledInstruction, Connection, MessageCompiledInstruction, PublicKey } from '@solana/web3.js';
+import { CompiledInstruction, ConfirmedTransactionMeta, Connection, MessageCompiledInstruction, PublicKey } from '@solana/web3.js';
 import { Market, InstructionInterface } from './Market';
 import { scale, lamportPerSol, usdQuote } from '../price_utils';
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
@@ -8,19 +8,42 @@ export interface SwapPayload { }
 
 class SwapInstruction implements InstructionInterface<SwapPayload> {
     async transform(arg0: MessageCompiledInstruction, arg1: PublicKey[]) { };
-    transformInner = async (transaction: CompiledInstruction, accountKeys: PublicKey[]) => {
+    transformInner = async (transaction: CompiledInstruction, accountKeys: PublicKey[], meta?: ConfirmedTransactionMeta) => {
+        console.log(transaction);
+        console.log(accountKeys);
+        const data = bs58.decode(transaction.data);
+        const amountIn = data.readBigUInt64LE(8);
+        const minAmountOut = data.readBigUInt64LE(16);
 
+        const inputToken = accountKeys[transaction.accounts[10]];
+        const outputToken = accountKeys[transaction.accounts[11]];
+
+        const preInputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === inputToken.toString())?.uiTokenAmount.amount;
+        const postInputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === inputToken.toString())?.uiTokenAmount.amount;
+
+        const preOutputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
+        const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
+
+        console.log(meta?.preTokenBalances, meta?.postTokenBalances);
+        console.log({
+            inputToken,
+            outputToken,
+            preInputTokenBalance,
+            postInputTokenBalance,
+            preOutputTokenBalance,
+            postOutputTokenBalance
+        });
     }
     handle(arg0: SwapPayload) { };
     isTransaction(data: Buffer) { return false };
     isInnerTransaction = (data: string) => {
-        const hexIn = Buffer.from('37d96256a34ab4ad', 'hex');
-        const hexOut = Buffer.from('8fbe5adac41e33de', 'hex');
+        // const hexOut = Buffer.from('37d96256a34ab4ad', 'hex'); // SwapBaseOutput
+        const hexIn = Buffer.from('8fbe5adac41e33de', 'hex'); // SwapBaseInput
         const instructionData = bs58.decode(data).slice(0, 8);
-        return hexIn.equals(instructionData || hexOut.equals(instructionData));
+        return hexIn.equals(instructionData);
     }
     isLogMatch(log: string) {
-        return !!log.match(/Program log: Instruction: SwapBase(?:Output|Input)/);
+        return !!log.match(/Program log: Instruction: SwapBaseInput/);
     };
 }
 
