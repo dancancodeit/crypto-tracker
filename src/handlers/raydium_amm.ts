@@ -9,8 +9,6 @@ export interface SwapPayload { }
 class SwapInstruction implements InstructionInterface<SwapPayload> {
     async transform(arg0: MessageCompiledInstruction, arg1: PublicKey[]) { };
     transformInner = async (transaction: CompiledInstruction, accountKeys: PublicKey[], meta?: ConfirmedTransactionMeta) => {
-        console.log(transaction);
-        console.log(accountKeys);
         const data = bs58.decode(transaction.data);
         const amountIn = data.readBigUInt64LE(8);
         const minAmountOut = data.readBigUInt64LE(16);
@@ -24,7 +22,6 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
         const preOutputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
         const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
 
-        console.log(meta?.preTokenBalances, meta?.postTokenBalances);
         console.log({
             inputToken,
             outputToken,
