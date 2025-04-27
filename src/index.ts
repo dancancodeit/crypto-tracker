@@ -40,6 +40,9 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         return;
     }
 
+    if (parsedData.params.result.value.err) {
+        return;
+    }
     // loop through logs, return if no log matches
     let targetInstructionHandler;
     const instructionHandlers = targetHandler.getInstructions();

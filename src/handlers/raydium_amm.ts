@@ -16,9 +16,11 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
         const inputToken = accountKeys[transaction.accounts[10]].toString();
         const outputToken = accountKeys[transaction.accounts[11]].toString();
 
+        const inputTokenDecimal = meta?.preTokenBalances?.find(tb => tb.mint === inputToken)?.uiTokenAmount.decimals;
         const preInputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === inputToken)?.uiTokenAmount.amount;
         const postInputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === inputToken)?.uiTokenAmount.amount;
 
+        const outputTokenDecimal = meta?.preTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.decimals;
         const preOutputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
         const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
 
