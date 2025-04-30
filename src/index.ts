@@ -1,6 +1,6 @@
 import WebSocket from 'ws';
 import { CompiledInstruction, Connection } from '@solana/web3.js';
-import { Market } from './handlers/Market';
+import { InstructionInterface, Market } from './handlers/Market';
 import { RaydiumAMM } from './handlers/raydium_amm'
 import PQueue from 'p-queue';
 
@@ -10,7 +10,7 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=cbd49
 
 const queue = new PQueue({
         interval: 1000,
-        intervalCap: 5
+        // intervalCap: 5000
 });
 const subscribeRequest = (id: number, programId: string) => (JSON.stringify({
         "jsonrpc": "2.0",
@@ -50,7 +50,7 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
                 return;
         }
         // loop through logs, return if no log matches
-        let targetInstructionHandler;
+        let targetInstructionHandler: InstructionInterface<any> | undefined;
         const instructionHandlers = targetHandler.getInstructions();
         for (const log of parsedData.params.result.value.logs) {
                 for (const instructionHandler of instructionHandlers) {
@@ -89,14 +89,15 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         // transform
         let payload;
         if (instruction) {
-                payload = await targetInstructionHandler.transform(instruction, accountKeys, targetHandler.context);
+                payload = await targetInstructionHandler.transform(instruction, [...accountKeys, ...tx.meta?.loadedAddresses?.writable || [], ...tx.meta?.loadedAddresses?.readonly || []], targetHandler.context);
         }
         else if (locatedInnerInstruction && tx.meta && tx.meta.loadedAddresses) {
-                payload = await targetInstructionHandler.transformInner(locatedInnerInstruction, [...accountKeys, ...tx.meta.loadedAddresses.writable, ...tx.meta.loadedAddresses.readonly], tx.meta);
+                payload = await targetInstructionHandler.transformInner(locatedInnerInstruction, [...accountKeys, ...tx.meta.loadedAddresses.writable, ...tx.meta.loadedAddresses.readonly], targetHandler.context, tx.meta);
         }
-
+        if (!payload) return;
         // pass to handler
         targetInstructionHandler.handle(payload, targetHandler.context);
+        console.log(`tracked tokens: ${targetHandler.context.trackedTokens}`);
 }
 
 const retryConnection = () => {

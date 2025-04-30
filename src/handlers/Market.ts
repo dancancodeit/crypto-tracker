@@ -1,7 +1,7 @@
 import { CompiledInstruction, ConfirmedTransactionMeta, MessageCompiledInstruction, PublicKey } from "@solana/web3.js";
 
 export type Context = {
-
+    trackedTokens: string[];
 }
 
 export interface Market {
@@ -13,10 +13,10 @@ export interface Market {
 }
 
 export interface InstructionInterface<T> {
-    transform: (instruction: MessageCompiledInstruction, accountKeys: PublicKey[], context: Context) => T;
-    transformInner: (innerInstruction: CompiledInstruction, accountKeys: PublicKey[], context: Context, meta?: ConfirmedTransactionMeta) => T;
-    handle: (arg0: T, context: Context) => void;
-    isTransaction: (data: Buffer) => boolean;
+    transform: (instruction: MessageCompiledInstruction, accountKeys: PublicKey[], context: Context) => Promise<T | undefined>;
+    transformInner: (innerInstruction: CompiledInstruction, accountKeys: PublicKey[], context: Context, meta?: ConfirmedTransactionMeta) => Promise<T | undefined>;
+    handle: (arg0: T, context: Context) => Promise<void>;
+    isTransaction: (data: Uint8Array) => boolean;
     isInnerTransaction: (data: string) => boolean;
     isLogMatch: (log: string) => boolean;
 }

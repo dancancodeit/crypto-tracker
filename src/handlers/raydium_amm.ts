@@ -1,13 +1,20 @@
 import { CompiledInstruction, ConfirmedTransactionMeta, Connection, MessageCompiledInstruction, PublicKey } from '@solana/web3.js';
 import { Market, InstructionInterface, Context } from './Market';
-import { scale, lamportPerSol, usdQuote } from '../price_utils';
+import { scale, lamportPerSol, usdQuote, SOL_ADDRESS } from '../price_utils';
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 
-export interface InitPayload { }
+export interface InitPayload {
+        // baseTokenPrice: string,
+        // baseTokenSupply: string,
+        baseTokenAddress: string,
+        // baseTokenSupplyAmount: string,
+}
 export interface SwapPayload { }
 
 class SwapInstruction implements InstructionInterface<SwapPayload> {
-        async transform(arg0: MessageCompiledInstruction, arg1: PublicKey[]) { };
+        async transform(arg0: MessageCompiledInstruction, arg1: PublicKey[]) {
+                return { baseTokenAddress: '' };
+        };
         transformInner = async (transaction: CompiledInstruction, accountKeys: PublicKey[], context: Context, meta?: ConfirmedTransactionMeta) => {
                 const data = bs58.decode(transaction.data);
                 const amountIn = data.readBigUInt64LE(8);
@@ -24,17 +31,33 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                 const preOutputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
                 const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
 
-                console.log({
+                // TODO: replace context with redis instance
+                if (!context.trackedTokens.includes(inputToken) || !context.trackedTokens.includes(outputToken)) {
+                        return;
+                }
+
+                let transactionType: string;
+                if (inputToken === SOL_ADDRESS) {
+                        transactionType = 'BUY';
+                }
+                else {
+                        transactionType = 'SELL';
+                }
+
+                return {
                         inputToken,
                         outputToken,
                         preInputTokenBalance,
                         postInputTokenBalance,
                         preOutputTokenBalance,
                         postOutputTokenBalance
-                });
+
+                };
         }
-        handle(arg0: SwapPayload) { };
-        isTransaction(data: Buffer) { return false };
+        async handle(arg0: SwapPayload) {
+                return;
+        };
+        isTransaction(data: Uint8Array) { return false };
         isInnerTransaction = (data: string) => {
                 // const hexOut = Buffer.from('37d96256a34ab4ad', 'hex'); // SwapBaseOutput
                 const hexIn = Buffer.from('8fbe5adac41e33de', 'hex'); // SwapBaseInput
@@ -49,17 +72,22 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
 class InitInstruction implements InstructionInterface<InitPayload> {
         instruction = [175, 175, 109, 31, 13, 152, 155, 237];
         connection: Connection;
-        transformInner = async (innerInstruction: CompiledInstruction, accountKeys: PublicKey[]) => ({});
-        transform = async (arg0: MessageCompiledInstruction, arg1: PublicKey[]) => {
-                const buff = Buffer.from(arg0.data);
+        transformInner = async (innerInstruction: CompiledInstruction, accountKeys: PublicKey[]) => ({
+                baseTokenAddress: ''
+        });
+        transform = async (messageInstruction: MessageCompiledInstruction, accountKeys: PublicKey[]) => {
+                const buff = Buffer.from(messageInstruction.data);
                 if (buff.byteLength !== 32) {
                         return;
                 }
-
+                if (messageInstruction.accountKeyIndexes.length !== 20) {
+                        console.log('wrong accountKey Size');
+                        return;
+                }
                 const initAmount0 = buff.readBigUInt64LE(8);
                 const initAmount1 = buff.readBigUInt64LE(16);
-                const tokenAddress0 = arg1[arg0.accountKeyIndexes[4]];
-                const tokenAddress1 = arg1[arg0.accountKeyIndexes[5]];
+                const tokenAddress0 = accountKeys[messageInstruction.accountKeyIndexes[4]];
+                const tokenAddress1 = accountKeys[messageInstruction.accountKeyIndexes[5]];
 
                 const tokens = [tokenAddress0, tokenAddress1];
                 const amounts = [initAmount0, initAmount1];
@@ -72,6 +100,7 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                 });
                 const quoteTokenDetails = await this.connection.getTokenSupply(tokens[baseTokenIdx]);
                 if (!quoteTokenDetails) {
+                        console.log('couldn\'t find token details');
                         return;
                 }
                 const decimals = quoteTokenDetails.value.decimals;
@@ -80,6 +109,7 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                         BigInt(amounts[quoteTokenIdx]),
                         BigInt(scale),
                         BigInt(decimals));
+                // SOL in lamports * USD quote in pennies * 10^-2 * 2 * sol per lamports
                 const liquidityValInSol = Number(amounts[quoteTokenIdx]) * (usdQuote * 10 ** -2) * 2 * Number(lamportPerSol);
 
                 return {
@@ -89,11 +119,11 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                         baseTokenSupply: amounts[baseTokenIdx].toString()
                 };
         };
-        handle = (arg0: InitPayload) => {
+        handle = async (payload: InitPayload, context: Context) => {
                 console.log('handling');
-                console.log(arg0);
+                context.trackedTokens.push(payload.baseTokenAddress);
         };
-        isTransaction = (data: Buffer) => {
+        isTransaction = (data: Uint8Array) => {
                 return data.slice(0, 8).every((byte, i) => byte === this.instruction[i]);
         }
         isInnerTransaction = (data: string) => false;
@@ -101,9 +131,13 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                 return log.toLowerCase() === "Program log: Instruction: Initialize".toLowerCase();
         }
         computePrices = (baseTokenAmount: bigint, quoteTokenAmount: bigint, scale: bigint, decimals: bigint) => {
+                // dividing by 10**9 because quote token (SOL) is in lamports. Scale to preserve accuracy
                 const numerator = quoteTokenAmount * scale / (10n ** 9n);
+                // converting base token to it's whole
                 const denominator = baseTokenAmount / 10n ** decimals;
+                // compute price per token 
                 const result = numerator / denominator;
+                // unscale
                 return Number(result) / Number(scale);
         }
 
@@ -117,15 +151,17 @@ export class RaydiumAMM implements Market {
         connection: Connection;
         subscriptionId = 0;
         id: number;
-        context: Context = {};
+        context: Context;
 
         getInstructions = () => ([
-                // new InitInstruction(this.connection),
-                new SwapInstruction()
+                new InitInstruction(this.connection),
+                // new SwapInstruction()
         ]);
         constructor(id: number, connection: Connection) {
                 this.id = id;
                 this.connection = connection;
-                this.context = {};
+                this.context = {
+                        trackedTokens: []
+                };
         }
 }
