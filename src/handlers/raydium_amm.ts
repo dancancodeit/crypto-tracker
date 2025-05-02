@@ -2,6 +2,7 @@ import { CompiledInstruction, ConfirmedTransactionMeta, Connection, MessageCompi
 import { Market, InstructionInterface, Context } from './Market';
 import { scale, lamportPerSol, usdQuote, SOL_ADDRESS } from '../price_utils';
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
+import fs from 'fs';
 
 export interface InitPayload {
         // baseTokenPrice: string,
@@ -31,10 +32,6 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                 const preOutputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
                 const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
 
-                // TODO: replace context with redis instance
-                if (!context.redis.sIsMember('tracked_tokens', '')) { }
-
-
                 let trackedToken;
                 let transactionType: string;
                 if (inputToken === SOL_ADDRESS) {
@@ -45,6 +42,8 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                         transactionType = 'SELL';
                         trackedToken = inputToken;
                 }
+
+                if (!context.redis.sIsMember('tracked_tokens', trackedToken)) { return }
 
                 return {
                         inputToken,
@@ -58,6 +57,7 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
         }
         async handle(payload: SwapPayload) {
                 console.log(payload);
+                fs.writeFileSync('transactions.out', JSON.stringify(payload));
                 return;
         };
         isTransaction(data: Uint8Array) { return false };

@@ -106,7 +106,7 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
 }
 
 const retryConnection = () => {
-        setTimeout(connectSocket, 2000);
+        setTimeout(() => connectSocket(handlers), 2000);
 }
 
 const connectSocket = (handlers: Market[]) => {
