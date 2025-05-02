@@ -54,12 +54,17 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         // loop through logs, return if no log matches
         let targetInstructionHandler: InstructionInterface<any> | undefined;
         const instructionHandlers = targetHandler.getInstructions();
-        for (const log of parsedData.params.result.value.logs) {
-                for (const instructionHandler of instructionHandlers) {
-                        if (instructionHandler.isLogMatch(log)) {
-                                console.log(`identified ${log}`);
-                                targetInstructionHandler = instructionHandler;
+        const regex = new RegExp(`Program\\s+${targetHandler.programId}\\s+invoke\\s+\\[(\\d+)\\]`);
+        for (const [i, log] of parsedData.params.result.value.logs.entries()) {
+                const match = log.match(regex);
+                if (match) {
+                        for (const instructionHandler of instructionHandlers) {
+                                if (instructionHandler.isLogMatch(parsedData.params.result.value.logs[i + 1])) {
+                                        console.log(`identified ${log}`);
+                                        targetInstructionHandler = instructionHandler;
+                                }
                         }
+
                 }
         }
         if (!targetInstructionHandler) {
