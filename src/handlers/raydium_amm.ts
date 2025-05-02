@@ -32,14 +32,18 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                 const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
 
                 // TODO: replace context with redis instance
+                if (!context.redis.sIsMember('tracked_tokens', '')) { }
 
 
+                let trackedToken;
                 let transactionType: string;
                 if (inputToken === SOL_ADDRESS) {
                         transactionType = 'BUY';
+                        trackedToken = outputToken;
                 }
                 else {
                         transactionType = 'SELL';
+                        trackedToken = inputToken;
                 }
 
                 return {

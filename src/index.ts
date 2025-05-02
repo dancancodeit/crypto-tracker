@@ -58,6 +58,7 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         for (const [i, log] of parsedData.params.result.value.logs.entries()) {
                 const match = log.match(regex);
                 if (match) {
+                        // TODO: use keys to find instruction handler 
                         for (const instructionHandler of instructionHandlers) {
                                 if (instructionHandler.isLogMatch(parsedData.params.result.value.logs[i + 1])) {
                                         console.log(`identified ${log}`);
