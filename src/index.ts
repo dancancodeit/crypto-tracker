@@ -3,6 +3,7 @@ import { CompiledInstruction, Connection } from '@solana/web3.js';
 import { InstructionInterface, Market } from './handlers/Market';
 import { RaydiumAMM } from './handlers/raydium_amm'
 import PQueue from 'p-queue';
+import { getRedisClient } from './lib/redisClient';
 
 // const websocketURL = "wss://api.mainnet-beta.solana.com";
 const websocketURL = "wss://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5";
@@ -10,7 +11,7 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=cbd49
 
 const queue = new PQueue({
         interval: 1000,
-        // intervalCap: 5000
+        // intervalCap: 8
 });
 const subscribeRequest = (id: number, programId: string) => (JSON.stringify({
         "jsonrpc": "2.0",
@@ -26,6 +27,7 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         const dataString = data.toString('utf8');
         const parsedData = JSON.parse(dataString);
         let targetHandler: Market | undefined;
+        const context = { redis: await getRedisClient() };
 
         // register subscription ID
         if (parsedData.id) {
@@ -63,7 +65,6 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         if (!targetInstructionHandler) {
                 return;
         }
-        console.log(`handler found ${targetInstructionHandler}`);
         // if log found, fetch rest of the transaction
         const signature = parsedData.params.result.value.signature;
         const tx = await connection.getTransaction(signature, {
@@ -85,19 +86,17 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         const accountKeys = tx.transaction.message.staticAccountKeys;
         if (!instruction && !locatedInnerInstruction) { return }
 
-        console.log('transforming');
         // transform
         let payload;
         if (instruction) {
-                payload = await targetInstructionHandler.transform(instruction, [...accountKeys, ...tx.meta?.loadedAddresses?.writable || [], ...tx.meta?.loadedAddresses?.readonly || []], targetHandler.context);
+                payload = await targetInstructionHandler.transform(instruction, [...accountKeys, ...tx.meta?.loadedAddresses?.writable || [], ...tx.meta?.loadedAddresses?.readonly || []], context);
         }
         else if (locatedInnerInstruction && tx.meta && tx.meta.loadedAddresses) {
-                payload = await targetInstructionHandler.transformInner(locatedInnerInstruction, [...accountKeys, ...tx.meta.loadedAddresses.writable, ...tx.meta.loadedAddresses.readonly], targetHandler.context, tx.meta);
+                payload = await targetInstructionHandler.transformInner(locatedInnerInstruction, [...accountKeys, ...tx.meta.loadedAddresses.writable, ...tx.meta.loadedAddresses.readonly], context, tx.meta);
         }
         if (!payload) return;
         // pass to handler
-        targetInstructionHandler.handle(payload, targetHandler.context);
-        console.log(`tracked tokens: ${targetHandler.context.trackedTokens}`);
+        targetInstructionHandler.handle(payload, context);
 }
 
 const retryConnection = () => {

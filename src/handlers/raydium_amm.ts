@@ -32,9 +32,7 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                 const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
 
                 // TODO: replace context with redis instance
-                if (!context.trackedTokens.includes(inputToken) || !context.trackedTokens.includes(outputToken)) {
-                        return;
-                }
+
 
                 let transactionType: string;
                 if (inputToken === SOL_ADDRESS) {
@@ -54,15 +52,16 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
 
                 };
         }
-        async handle(arg0: SwapPayload) {
+        async handle(payload: SwapPayload) {
+                console.log(payload);
                 return;
         };
         isTransaction(data: Uint8Array) { return false };
         isInnerTransaction = (data: string) => {
                 // const hexOut = Buffer.from('37d96256a34ab4ad', 'hex'); // SwapBaseOutput
-                const hexIn = Buffer.from('8fbe5adac41e33de', 'hex'); // SwapBaseInput
+                const buff = Buffer.from('8fbe5adac41e33de', 'hex'); // SwapBaseInput
                 const instructionData = bs58.decode(data).slice(0, 8);
-                return hexIn.equals(instructionData);
+                return buff.equals(instructionData);
         }
         isLogMatch(log: string) {
                 return !!log.match(/Program log: Instruction: SwapBaseInput/);
@@ -120,8 +119,8 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                 };
         };
         handle = async (payload: InitPayload, context: Context) => {
+                context.redis.sAdd('tracked_tokens', payload.baseTokenAddress);
                 console.log('handling');
-                context.trackedTokens.push(payload.baseTokenAddress);
         };
         isTransaction = (data: Uint8Array) => {
                 return data.slice(0, 8).every((byte, i) => byte === this.instruction[i]);
@@ -151,7 +150,6 @@ export class RaydiumAMM implements Market {
         connection: Connection;
         subscriptionId = 0;
         id: number;
-        context: Context;
 
         getInstructions = () => ([
                 new InitInstruction(this.connection),
@@ -160,8 +158,5 @@ export class RaydiumAMM implements Market {
         constructor(id: number, connection: Connection) {
                 this.id = id;
                 this.connection = connection;
-                this.context = {
-                        trackedTokens: []
-                };
         }
 }
