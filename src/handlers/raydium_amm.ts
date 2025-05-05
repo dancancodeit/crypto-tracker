@@ -32,8 +32,8 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                 const preOutputTokenBalance = meta?.preTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
                 const postOutputTokenBalance = meta?.postTokenBalances?.find(tb => tb.mint === outputToken.toString())?.uiTokenAmount.amount;
 
-                let trackedToken;
-                let transactionType: string;
+                let trackedToken: string | undefined;
+                let transactionType: string | undefined;
                 if (inputToken === SOL_ADDRESS) {
                         transactionType = 'BUY';
                         trackedToken = outputToken;
@@ -43,7 +43,7 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                         trackedToken = inputToken;
                 }
 
-                if (!context.redis.sIsMember('tracked_tokens', trackedToken)) { return }
+                if (!await context.redis.sIsMember('tracked_tokens', trackedToken)) { return }
 
                 return {
                         inputToken,
@@ -57,7 +57,7 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
         }
         async handle(payload: SwapPayload) {
                 console.log(payload);
-                fs.writeFileSync('transactions.out', JSON.stringify(payload));
+                fs.appendFileSync('transactions.out', JSON.stringify(payload) + '\n');
                 return;
         };
         isTransaction(data: Uint8Array) { return false };

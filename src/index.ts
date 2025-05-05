@@ -11,7 +11,7 @@ const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=cbd49
 
 const queue = new PQueue({
         interval: 1000,
-        // intervalCap: 8
+        intervalCap: 8
 });
 const subscribeRequest = (id: number, programId: string) => (JSON.stringify({
         "jsonrpc": "2.0",
@@ -61,7 +61,7 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
                         // TODO: use keys to find instruction handler 
                         for (const instructionHandler of instructionHandlers) {
                                 if (instructionHandler.isLogMatch(parsedData.params.result.value.logs[i + 1])) {
-                                        console.log(`identified ${log}`);
+                                        console.log(`identified ${parsedData.params.result.value.logs[i + 1]}`);
                                         targetInstructionHandler = instructionHandler;
                                 }
                         }
@@ -119,7 +119,7 @@ const connectSocket = (handlers: Market[]) => {
                 }
         });
         ws.on('message', async (data) => {
-                queue.add(() => processTransaction(data, handlers));
+                await queue.add(() => processTransaction(data, handlers));
         });
         ws.on('close', async () => {
                 console.log('retrying connection');
