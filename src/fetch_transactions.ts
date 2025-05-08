@@ -43,5 +43,7 @@ const fetchSignatures = async (addr: Address, start: bigint, end?: bigint) => {
 }
 
 const signatures = await fetchSignatures(addr, startDate);
+// signatures are in order from newest to oldest
+// traverse from the end or return flipped array 
 console.log(signatures.length);
 
