@@ -1,10 +1,21 @@
 import { Address, address, createSolanaRpc, Signature } from "@solana/kit";
+import { UnixTimestamp, Commitment, TransactionError, Slot } from "@solana/kit";
+import { Connection } from "@solana/web3.js";
 
 const startDate = BigInt(Math.floor(new Date(new Date().getTime() - 10000).getTime() / 1000));
 
 const rpc_url = 'https://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5';
 const rpc = createSolanaRpc(rpc_url);
 const addr = address('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
+
+type SignatureType = {
+        blockTime: UnixTimestamp | null;
+        confirmationStatus: Commitment | null;
+        err: TransactionError | null;
+        memo: string | null;
+        signature: Signature;
+        slot: Slot;
+}
 
 const fetchSignatures = async (addr: Address, start: bigint, end?: bigint) => {
         let fetching = true;
@@ -39,11 +50,19 @@ const fetchSignatures = async (addr: Address, start: bigint, end?: bigint) => {
                         fetching = false;
                 }
         }
-        return allSignatures;
+        return allSignatures.reverse();
+}
+
+const processSignatures = async (signatures: SignatureType[]) => {
+        console.log('processing signatures');
+        const websocketURL = "https://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5";
+        const connection = new Connection(websocketURL);
+        // looks like this just throws a bunch of rpc requests
+        const transactions = await connection.getTransactions(signatures.map(sig => sig.signature), { maxSupportedTransactionVersion: 0 });
+        return transactions;
 }
 
 const signatures = await fetchSignatures(addr, startDate);
-// signatures are in order from newest to oldest
-// traverse from the end or return flipped array 
+await processSignatures(signatures);
 console.log(signatures.length);
 
