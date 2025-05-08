@@ -6,7 +6,7 @@ const rpc_url = 'https://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4
 const rpc = createSolanaRpc(rpc_url);
 const addr = address('CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C');
 
-const fetchTransactions = async (addr: Address, start: bigint, end?: bigint) => {
+const fetchSignatures = async (addr: Address, start: bigint, end?: bigint) => {
         let fetching = true;
         let lastSignature;
         let allSignatures = [];
@@ -42,6 +42,6 @@ const fetchTransactions = async (addr: Address, start: bigint, end?: bigint) => 
         return allSignatures;
 }
 
-const signatures = await fetchTransactions(addr, startDate);
+const signatures = await fetchSignatures(addr, startDate);
 console.log(signatures.length);
 
