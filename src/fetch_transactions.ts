@@ -1,6 +1,5 @@
 import { Address, address, createSolanaRpc, Signature } from "@solana/kit";
 import { UnixTimestamp, Commitment, TransactionError, Slot } from "@solana/kit";
-import { Connection } from "@solana/web3.js";
 
 const startDate = BigInt(Math.floor(new Date(new Date().getTime() - 10000).getTime() / 1000));
 
@@ -53,16 +52,38 @@ const fetchSignatures = async (addr: Address, start: bigint, end?: bigint) => {
         return allSignatures.reverse();
 }
 
+const retryClient = async (action: () => Promise<any>) => {
+        let delay = 1000;
+        while (1) {
+                try {
+                        return await action();
+                }
+                catch (e) {
+                        await new Promise(res => setTimeout(res, delay));
+                        delay = delay * 2;
+                        continue;
+                }
+        }
+}
+
+type TransactionType = Awaited<ReturnType<typeof rpc.getTransaction>['send']>;
+
 const processSignatures = async (signatures: SignatureType[]) => {
         console.log('processing signatures');
-        const websocketURL = "https://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5";
-        const connection = new Connection(websocketURL);
         // looks like this just throws a bunch of rpc requests
-        const transactions = await connection.getTransactions(signatures.map(sig => sig.signature), { maxSupportedTransactionVersion: 0 });
+        const sigArr = signatures.map(sig => sig.signature);
+        const transactions: TransactionType[] = [];
+        for (const sig of sigArr) {
+                const transaction = await retryClient(async () => (
+                        await rpc.getTransaction(sig, { maxSupportedTransactionVersion: 0 }).send()
+                ));
+                transactions.push(transaction);
+        }
         return transactions;
 }
 
 const signatures = await fetchSignatures(addr, startDate);
-await processSignatures(signatures);
+const transactions = await processSignatures(signatures);
 console.log(signatures.length);
+console.log(transactions);
 
