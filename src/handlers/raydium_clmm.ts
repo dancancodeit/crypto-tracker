@@ -21,3 +21,17 @@ export class CLMMInitInstructionHandler implements InstructionInterface<CLMMPayl
         isLogMatch(log: string) { return false; }
 
 }
+
+export class RaydiumCLMMMarket implements Market {
+        programId: string;
+        id: number;
+
+        constructor(id: number) {
+                this.id = id;
+                this.programId = 'CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK';
+        }
+
+        getInstructions() {
+                return [new CLMMInitInstructionHandler()]
+        }
+}
