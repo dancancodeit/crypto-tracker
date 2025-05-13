@@ -1,6 +1,7 @@
-import { Address, address, createSolanaRpc, Signature } from "@solana/kit";
+import { Address, address, createSolanaRpc, GetTransactionApi, Signature } from "@solana/kit";
 import { UnixTimestamp, Commitment, TransactionError, Slot } from "@solana/kit";
 
+// 10 seconds ago in seconds
 const startDate = BigInt(Math.floor(new Date(new Date().getTime() - 10000).getTime() / 1000));
 
 const rpc_url = 'https://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5';
@@ -22,6 +23,7 @@ const fetchSignatures = async (addr: Address, start: bigint, end?: bigint) => {
         let allSignatures = [];
         let options: { before: Signature } | undefined;
         if (!end) {
+                // current time in seconds
                 end = BigInt(Math.floor(new Date().getTime() / 1000));
         }
         while (fetching) {
@@ -59,6 +61,7 @@ const retryClient = async (action: () => Promise<any>) => {
                         return await action();
                 }
                 catch (e) {
+                        console.log(`error ${e}: retrying in ${delay}`);
                         await new Promise(res => setTimeout(res, delay));
                         delay = delay * 2;
                         continue;
@@ -66,14 +69,13 @@ const retryClient = async (action: () => Promise<any>) => {
         }
 }
 
-type TransactionType = Awaited<ReturnType<typeof rpc.getTransaction>['send']>;
-
+type TransactionType = Awaited<ReturnType<GetTransactionApi['getTransaction']>>;
 const processSignatures = async (signatures: SignatureType[]) => {
         console.log('processing signatures');
-        // looks like this just throws a bunch of rpc requests
         const sigArr = signatures.map(sig => sig.signature);
         const transactions: TransactionType[] = [];
-        for (const sig of sigArr) {
+        for (const [i, sig] of sigArr.entries()) {
+                console.log(`trying ${i + 1} / ${sigArr.length}`);
                 const transaction = await retryClient(async () => (
                         await rpc.getTransaction(sig, { maxSupportedTransactionVersion: 0 }).send()
                 ));
@@ -83,7 +85,7 @@ const processSignatures = async (signatures: SignatureType[]) => {
 }
 
 const signatures = await fetchSignatures(addr, startDate);
-const transactions = await processSignatures(signatures);
 console.log(signatures.length);
+const transactions = await processSignatures(signatures);
 console.log(transactions);
 

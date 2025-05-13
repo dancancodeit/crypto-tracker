@@ -152,7 +152,6 @@ class InitInstruction implements InstructionInterface<InitPayload> {
 export class RaydiumAMM implements Market {
         programId = 'CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C';
         connection: Connection;
-        subscriptionId = 0;
         id: number;
 
         getInstructions = () => ([

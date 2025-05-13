@@ -29,20 +29,18 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         let targetHandler: Market | undefined;
         const context = { redis: await getRedisClient() };
 
-        // register subscription ID
+        // register subscription ID (if this was a response from register then it comes back with an id. save it to the appropriate handler)
         if (parsedData.id) {
-                console.log(`registering subscription ${parsedData.id}`);
                 targetHandler = handlers.find((handler) => handler.id === parsedData.id);
                 if (!targetHandler) {
                         return;
                 }
-                targetHandler.subscriptionId = parsedData.subscription;
-                console.log(`registered to ${targetHandler}`);
+                console.log(`received subscription response for ${parsedData.id} to ${targetHandler.programId} handler`);
                 return;
         }
 
         // get market handler for the subscriptionId
-        targetHandler = handlers.find((handler) => handler.subscriptionId === parsedData.subscription);
+        targetHandler = handlers.find((handler) => handler.id === parsedData.subscription);
 
         if (!targetHandler) {
                 return;
@@ -114,7 +112,7 @@ const connectSocket = (handlers: Market[]) => {
         const ws = new WebSocket(websocketURL);
         ws.on('open', () => {
                 for (const handler of handlers) {
-                        console.log(`subscribing to ${handler.programId}`);
+                        console.log(`sending subscription request for to ${handler.programId} with id ${handler.id}`);
                         ws.send(subscribeRequest(handler.id, handler.programId));
                 }
         });
