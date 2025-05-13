@@ -4,21 +4,34 @@ import { Context, InstructionInterface, Market } from "./Market";
 type CLMMPayload = {
 
 }
+
 export class CLMMInitInstructionHandler implements InstructionInterface<CLMMPayload> {
+        INSTRUCTION_IDENTIFIER_HEX = 'e992d18ecf6840bc';
+
         async transform(instruction: MessageCompiledInstruction, accountKeys: PublicKey[], context: Context) {
+                console.log('transforming createPool');
+                //TODO: esketit
                 return {};
         }
+
         async transformInner(innerInstruction: CompiledInstruction, accountKeys: PublicKey[], context: Context, meta?: ConfirmedTransactionMeta) {
                 return undefined;
         }
+
         async handle(arg: CLMMPayload, context: Context) {
                 return;
         }
+
         isTransaction(data: Uint8Array) {
-                return false;
+                const dataHexIdentifier = Buffer.from(data).toString('hex', 0, 8);;
+                return dataHexIdentifier === this.INSTRUCTION_IDENTIFIER_HEX;
         }
+
         isInnerTransaction(data: string) { return true; }
-        isLogMatch(log: string) { return false; }
+
+        isLogMatch(log: string) {
+                return log === 'Program log: Instruction: CreatePool'
+        }
 
 }
 

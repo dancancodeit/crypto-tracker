@@ -4,6 +4,7 @@ import { InstructionInterface, Market } from './handlers/Market';
 import { RaydiumAMM } from './handlers/raydium_amm'
 import PQueue from 'p-queue';
 import { getRedisClient } from './lib/redisClient';
+import { RaydiumCLMMMarket } from './handlers/raydium_clmm';
 
 // const websocketURL = "wss://api.mainnet-beta.solana.com";
 const websocketURL = "wss://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5";
@@ -127,7 +128,7 @@ const connectSocket = (handlers: Market[]) => {
 
 
 // register handlers
-const handlers: Market[] = [new RaydiumAMM(1, connection)];
+const handlers: Market[] = [new RaydiumAMM(1, connection), new RaydiumCLMMMarket(2)];
 // initialize connection
 connectSocket(handlers);
 console.log('app started');
