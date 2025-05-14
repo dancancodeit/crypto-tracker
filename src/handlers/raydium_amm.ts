@@ -153,6 +153,7 @@ export class RaydiumAMM implements Market {
         programId = 'CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C';
         connection: Connection;
         id: number;
+        subscriptionId: number;
 
         getInstructions = () => ([
                 new InitInstruction(this.connection),
@@ -161,5 +162,6 @@ export class RaydiumAMM implements Market {
         constructor(id: number, connection: Connection) {
                 this.id = id;
                 this.connection = connection;
+                this.subscriptionId = 0;
         }
 }

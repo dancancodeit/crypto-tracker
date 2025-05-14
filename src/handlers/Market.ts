@@ -7,6 +7,7 @@ export type Context = {
 
 export interface Market {
         programId: string;
+        subscriptionId: number
         id: number;
         getInstructions: () => InstructionInterface<any>[];
 }

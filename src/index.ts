@@ -30,18 +30,19 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         let targetHandler: Market | undefined;
         const context = { redis: await getRedisClient() };
 
-        // register subscription ID (if this was a response from register then it comes back with an id. save it to the appropriate handler)
+        // register subscription ID
         if (parsedData.id) {
+                console.log(`registering subscription ${parsedData.id}`);
                 targetHandler = handlers.find((handler) => handler.id === parsedData.id);
                 if (!targetHandler) {
                         return;
                 }
-                console.log(`received subscription response for ${parsedData.id} to ${targetHandler.programId} handler`);
+                targetHandler.subscriptionId = parsedData.result;
                 return;
         }
 
         // get market handler for the subscriptionId
-        targetHandler = handlers.find((handler) => handler.id === parsedData.subscription);
+        targetHandler = handlers.find((handler) => handler.subscriptionId === parsedData.params.subscription);
 
         if (!targetHandler) {
                 return;
@@ -58,13 +59,13 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
                 const match = log.match(regex);
                 if (match) {
                         // TODO: use keys to find instruction handler 
+                        // console.log(parsedData.params.result.value.logs[i], parsedData.params.result.value.logs[i + 1]);
                         for (const instructionHandler of instructionHandlers) {
                                 if (instructionHandler.isLogMatch(parsedData.params.result.value.logs[i + 1])) {
                                         console.log(`identified ${parsedData.params.result.value.logs[i + 1]}`);
                                         targetInstructionHandler = instructionHandler;
                                 }
                         }
-
                 }
         }
         if (!targetInstructionHandler) {
@@ -113,7 +114,7 @@ const connectSocket = (handlers: Market[]) => {
         const ws = new WebSocket(websocketURL);
         ws.on('open', () => {
                 for (const handler of handlers) {
-                        console.log(`sending subscription request for to ${handler.programId} with id ${handler.id}`);
+                        console.log(`subscribing to ${handler.programId}`);
                         ws.send(subscribeRequest(handler.id, handler.programId));
                 }
         });
@@ -128,7 +129,10 @@ const connectSocket = (handlers: Market[]) => {
 
 
 // register handlers
-const handlers: Market[] = [new RaydiumAMM(1, connection), new RaydiumCLMMMarket(2)];
+const handlers: Market[] = [
+        new RaydiumAMM(1, connection),
+        new RaydiumCLMMMarket(2),
+];
 // initialize connection
 connectSocket(handlers);
 console.log('app started');
