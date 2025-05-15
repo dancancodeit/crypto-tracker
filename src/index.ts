@@ -11,8 +11,8 @@ const websocketURL = "wss://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b
 const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=cbd49df2-abbf-4bfe-b7a4-dbe53fd90fd5');
 
 const queue = new PQueue({
-        interval: 1000,
-        intervalCap: 8
+        // interval: 1000,
+        // intervalCap: 8,
 });
 const subscribeRequest = (id: number, programId: string) => (JSON.stringify({
         "jsonrpc": "2.0",
@@ -40,7 +40,8 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
                 targetHandler.subscriptionId = parsedData.result;
                 return;
         }
-
+        // console.log(parsedData.params.result.value.signature);
+        // console.log(parsedData.params.result.value.signature);
         // get market handler for the subscriptionId
         targetHandler = handlers.find((handler) => handler.subscriptionId === parsedData.params.subscription);
 
