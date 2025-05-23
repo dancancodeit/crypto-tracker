@@ -10,6 +10,7 @@ export class CLMMInitInstructionHandler implements InstructionInterface<CLMMPayl
 
         async transform(instruction: MessageCompiledInstruction, accountKeys: PublicKey[], context: Context) {
                 console.log('transforming createPool');
+                console.log(JSON.stringify(instruction));
                 //TODO: esketit
                 return {};
         }
@@ -47,6 +48,8 @@ export class RaydiumCLMMMarket implements Market {
         }
 
         getInstructions() {
-                return [new CLMMInitInstructionHandler()]
+                return [
+                        new CLMMInitInstructionHandler(),
+                ]
         }
 }

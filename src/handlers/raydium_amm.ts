@@ -115,6 +115,9 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                 // SOL in lamports * USD quote in pennies * 10^-2 * 2 * sol per lamports
                 const liquidityValInSol = Number(amounts[quoteTokenIdx]) * (usdQuote * 10 ** -2) * 2 * Number(lamportPerSol);
 
+                const largestAccounts = this.connection.getTokenLargestAccounts([tokenAddress0, tokenAddress1][baseTokenIdx]);
+
+
                 return {
                         baseTokenPrice: price.toString(),
                         baseTokenSupplyVal: liquidityValInSol,
