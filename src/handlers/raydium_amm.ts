@@ -95,10 +95,10 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                 const tokens = [tokenAddress0, tokenAddress1];
                 const amounts = [initAmount0, initAmount1];
 
-                const baseTokenIdx = [tokenAddress0, tokenAddress1].findIndex((val) => {
+                const baseTokenIdx = tokens.findIndex((val) => {
                         return val.toString().slice(0, 2) !== 'So'
                 });
-                const quoteTokenIdx = [tokenAddress0, tokenAddress1].findIndex((val) => {
+                const quoteTokenIdx = tokens.findIndex((val) => {
                         return val.toString().slice(0, 2) === 'So'
                 });
                 const quoteTokenDetails = await this.connection.getTokenSupply(tokens[baseTokenIdx]);
@@ -115,8 +115,9 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                 // SOL in lamports * USD quote in pennies * 10^-2 * 2 * sol per lamports
                 const liquidityValInSol = Number(amounts[quoteTokenIdx]) * (usdQuote * 10 ** -2) * 2 * Number(lamportPerSol);
 
-                const largestAccounts = this.connection.getTokenLargestAccounts([tokenAddress0, tokenAddress1][baseTokenIdx]);
+                const largestAccounts = (await this.connection.getTokenLargestAccounts(tokens[baseTokenIdx])).value;
 
+                console.log(`LARGES ACCOUNTS ${largestAccounts}`);
 
                 return {
                         baseTokenPrice: price.toString(),
