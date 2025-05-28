@@ -1,14 +1,16 @@
-import { CompiledInstruction, ConfirmedTransactionMeta, Connection, MessageCompiledInstruction, PublicKey } from '@solana/web3.js';
+import { CompiledInstruction, ConfirmedTransactionMeta, Connection, MessageCompiledInstruction, PublicKey, TokenAccountBalancePair } from '@solana/web3.js';
 import { Market, InstructionInterface, Context } from './Market';
-import { scale, lamportPerSol, usdQuote, SOL_ADDRESS } from '../price_utils';
+import { scale, lamportPerSol, usdQuote, SOL_ADDRESS, fetchLargestHolders } from '../price_utils';
 import { bs58 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 import fs from 'fs';
+import { token } from '@coral-xyz/anchor/dist/cjs/utils';
 
 export interface InitPayload {
-        // baseTokenPrice: string,
-        // baseTokenSupply: string,
+        baseTokenPrice: string,
         baseTokenAddress: string,
-        // baseTokenSupplyAmount: string,
+        baseTokenSupplyAmount: string,
+        largestAccounts: TokenAccountBalancePair[],
+        largestAccountMetaInfo: Record<'percentOfTotalSupply', any>[],
 }
 export interface SwapPayload { }
 
@@ -56,7 +58,7 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
                 };
         }
         async handle(payload: SwapPayload) {
-                console.log(payload);
+                // console.log(payload);
                 fs.appendFileSync('transactions.out', JSON.stringify(payload) + '\n');
                 return;
         };
@@ -75,9 +77,7 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
 class InitInstruction implements InstructionInterface<InitPayload> {
         instruction = [175, 175, 109, 31, 13, 152, 155, 237];
         connection: Connection;
-        transformInner = async (innerInstruction: CompiledInstruction, accountKeys: PublicKey[]) => ({
-                baseTokenAddress: ''
-        });
+        transformInner = async (innerInstruction: CompiledInstruction, accountKeys: PublicKey[]) => undefined;
         transform = async (messageInstruction: MessageCompiledInstruction, accountKeys: PublicKey[]) => {
                 const buff = Buffer.from(messageInstruction.data);
                 if (buff.byteLength !== 32) {
@@ -115,20 +115,26 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                 // SOL in lamports * USD quote in pennies * 10^-2 * 2 * sol per lamports
                 const liquidityValInSol = Number(amounts[quoteTokenIdx]) * (usdQuote * 10 ** -2) * 2 * Number(lamportPerSol);
 
-                const largestAccounts = (await this.connection.getTokenLargestAccounts(tokens[baseTokenIdx])).value;
+                const largestAccounts = await fetchLargestHolders(tokens[baseTokenIdx], this.connection);
 
-                console.log(`LARGES ACCOUNTS ${largestAccounts}`);
+                const largestAccountMetaInfo = largestAccounts.map(acc => ({
+                        percentOfTotalSupply: acc.amount || 0 / Number(amounts[baseTokenIdx])
+                }));
 
                 return {
                         baseTokenPrice: price.toString(),
                         baseTokenSupplyVal: liquidityValInSol,
                         baseTokenAddress: tokens[baseTokenIdx].toString(),
-                        baseTokenSupply: amounts[baseTokenIdx].toString()
+                        baseTokenSupplyAmount: amounts[baseTokenIdx].toString(),
+                        largestAccounts,
+                        largestAccountMetaInfo,
                 };
         };
         handle = async (payload: InitPayload, context: Context) => {
                 context.redis.sAdd('tracked_tokens', payload.baseTokenAddress);
-                console.log('handling');
+                console.log(payload.largestAccounts);
+                console.log(JSON.stringify(payload.largestAccountMetaInfo));
+                console.log('handled');
         };
         isTransaction = (data: Uint8Array) => {
                 return data.slice(0, 8).every((byte, i) => byte === this.instruction[i]);

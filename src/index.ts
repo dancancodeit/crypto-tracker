@@ -96,7 +96,7 @@ const processTransaction = async (data: WebSocket.Data, handlers: Market[]) => {
         // transform
         let payload;
         if (instruction) {
-                console.log(JSON.stringify(tx.meta?.postTokenBalances));
+                // console.log(JSON.stringify(tx.meta?.postTokenBalances));
                 payload = await targetInstructionHandler.transform(instruction, [...accountKeys, ...tx.meta?.loadedAddresses?.writable || [], ...tx.meta?.loadedAddresses?.readonly || []], context);
         }
         else if (locatedInnerInstruction && tx.meta && tx.meta.loadedAddresses) {
@@ -133,7 +133,7 @@ const connectSocket = (handlers: Market[]) => {
 // register handlers
 const handlers: Market[] = [
         new RaydiumAMM(1, connection),
-        new RaydiumCLMMMarket(2),
+        // new RaydiumCLMMMarket(2),
 ];
 // initialize connection
 connectSocket(handlers);
