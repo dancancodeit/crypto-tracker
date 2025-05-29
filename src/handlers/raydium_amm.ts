@@ -112,13 +112,14 @@ class InitInstruction implements InstructionInterface<InitPayload> {
                         BigInt(amounts[quoteTokenIdx]),
                         BigInt(scale),
                         BigInt(decimals));
+
                 // SOL in lamports * USD quote in pennies * 10^-2 * 2 * sol per lamports
                 const liquidityValInSol = Number(amounts[quoteTokenIdx]) * (usdQuote * 10 ** -2) * 2 * Number(lamportPerSol);
 
                 const largestAccounts = await fetchLargestHolders(tokens[baseTokenIdx], this.connection);
 
                 const largestAccountMetaInfo = largestAccounts.map(acc => ({
-                        percentOfTotalSupply: acc.amount || 0 / Number(amounts[baseTokenIdx])
+                        percentOfTotalSupply: (Number(acc.amount) || 0) / Number(amounts[baseTokenIdx])
                 }));
 
                 return {
@@ -132,6 +133,7 @@ class InitInstruction implements InstructionInterface<InitPayload> {
         };
         handle = async (payload: InitPayload, context: Context) => {
                 context.redis.sAdd('tracked_tokens', payload.baseTokenAddress);
+                console.log(payload.baseTokenSupplyAmount);
                 console.log(payload.largestAccounts);
                 console.log(JSON.stringify(payload.largestAccountMetaInfo));
                 console.log('handled');
