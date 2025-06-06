@@ -60,6 +60,10 @@ class SwapInstruction implements InstructionInterface<SwapPayload> {
         async handle(payload: SwapPayload) {
                 // console.log(payload);
                 fs.appendFileSync('transactions.out', JSON.stringify(payload) + '\n');
+                // TODO: basic checks
+                //  1) check if dev wallet's tokens are locked/burned
+                //  2) check dev wallet holding %
+                //  3) check wallet age
                 return;
         };
         isTransaction(data: Uint8Array) { return false };
